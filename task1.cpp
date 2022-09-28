@@ -19,12 +19,14 @@ enum philState{
 int phils; int meals; int count =0; int philsWaiting = 0;
 // init semaphores
 sem_t sitting;sem_t waitToSit;sem_t *chopstickArr; sem_t pickUpSticks; sem_t beginEat;
-sem_t endEat; sem_t getUp; sem_t leaving; sem_t cmdWindow;
+sem_t endEat; sem_t getUp; sem_t leaving; sem_t cmdWindow; sem_t mealSem;
 
 
 void *diningTable(void * arg);
 void getInput(int&phils, int &meals);
 void eat(int philNum, philState &philState);
+void semaphoreCheck();
+void garbageCollection();
 
 int main(){
     printf("\n----------------------------------------\nDining Philosophers (Semapahores)\n");
@@ -32,7 +34,7 @@ int main(){
     //prompt user and validate input
     getInput(phils, meals);
     cout << "\nTonight's dinner party will serve::\n" << phils << " philosophers ";
-    cout << meals << " total meals. \n----------------------------------------\n----------------------------------------\n"; 
+    cout << meals << " total meals. \n----------------------------------------\n"; 
 
     // init chopstick array
     chopstickArr = (sem_t *)malloc(sizeof(sem_t)*phils);
@@ -40,15 +42,9 @@ int main(){
         sem_init(&chopstickArr[i], 0, 1);
     }
 
-    // wait until the phils have sat down
-    sem_init(&sitting, 0, 1);
-    sem_init(&waitToSit, 0, 0);
-    sem_init(&pickUpSticks, 0, 1);
-    sem_init(&beginEat, 0, 1);
-    sem_init(&endEat, 0, 1);
-    sem_init(&getUp, 0, 1);
-    sem_init(&leaving, 0, 0);
-    sem_init(&cmdWindow, 0, 1);
+    // Initialize Semaphores
+    semaphoreCheck();
+ 
     // init phil arr
     pthread_t philArr[phils];
     for(int i=0; i< phils; i++){
@@ -61,18 +57,7 @@ int main(){
 
 
     //deallocate 
-    free(chopstickArr);
-    for (int i=0; i<phils; i++){
-        sem_destroy(&chopstickArr[i]);
-    }
-    sem_destroy(&sitting);
-    sem_destroy(&waitToSit);
-    sem_destroy(&pickUpSticks);
-    sem_destroy(&beginEat);
-    sem_destroy(&endEat);
-    sem_destroy(&getUp);
-    sem_destroy(&leaving);
-    sem_destroy(&cmdWindow);
+    garbageCollection();
     return 0;
 
 }
@@ -123,7 +108,9 @@ void getInput(int &phils, int &meals){
 void * diningTable(void * arg){
     sem_wait(&sitting);
     int countval = (*((int *)arg))++;
+    sem_wait(&cmdWindow);
     cout << "-Philosopher #" << countval << " has arrived" << endl;
+    sem_post(&cmdWindow);
     sem_post(&sitting);
     
     //Wait until all the phils have sat down
@@ -147,7 +134,7 @@ void * diningTable(void * arg){
         cout << "---Philosopher #" << countval << "'s LEFT chopstick";
         cout << ((leftChop==1) ? " is available" : " is not available.") << endl;
         sem_post(&cmdWindow);
-
+        
         sem_wait(&cmdWindow);
         sem_getvalue(&chopstickArr[(countval+1)%phils], &rightChop);
         cout << "---Philosopher #" << countval << "'s RIGHT chopstick";
@@ -163,10 +150,10 @@ void * diningTable(void * arg){
 
         }
         else if((leftChop == 1) & (rightChop == 1) & (meals == 0)){
+            sem_post(&pickUpSticks);
             sem_wait(&cmdWindow);
             cout << "There are no meals available for philosopher #" << countval<< "." << endl;
             sem_post(&cmdWindow);
-            sem_post(&pickUpSticks);
         }   
         else{
             sem_post(&pickUpSticks);
@@ -175,18 +162,22 @@ void * diningTable(void * arg){
     }
 
     philState = waiting;
-    // if all phils are ready to leave, let em go
+    // once phils are waiting, wait for all of them to be ready to go
     sem_wait(&getUp);
     philsWaiting++;
     sem_post(&getUp);
 
+    // implement barrier
     if(philsWaiting == phils){
         cout << "--------All philosophers are ready to leave the table" << endl;
         sem_post(&leaving);
     }
     sem_wait(&leaving);
-    cout << "---------Philosopher #" << countval << " has gotten up and left. " << endl;
     sem_post(&leaving);
+
+    sem_wait(&cmdWindow);
+    cout << "---------Philosopher #" << countval << " has gotten up and left. " << endl;
+    sem_post(&cmdWindow);
 
     pthread_exit(0);
 
@@ -195,11 +186,17 @@ void * diningTable(void * arg){
 void eat(int philNum, philState &philState){
     sem_wait(&cmdWindow);
     cout << "------Philosopher #" << philNum << " is eating. " << endl;
+    sem_post(&cmdWindow);
+
     philState = eating;
+
+    sem_wait(&mealSem);
     //phil has claimed a meal, decrement
     meals--;
+    sem_wait(&cmdWindow);
     cout << "------Meals left: " << meals << endl;
     sem_post(&cmdWindow);
+    sem_post(&mealSem);
 
     // eat for a lil while
     srand(time(0));
@@ -209,16 +206,18 @@ void eat(int philNum, philState &philState){
     }
     
     //phil has finished his meal, put down the chopsticks and begin thinking
-    sem_post(&chopstickArr[philNum]);
+    sem_wait(&pickUpSticks);
     sem_wait(&cmdWindow);
+    sem_post(&chopstickArr[philNum]);
     cout << "--------Philosopher #" << philNum << " puts down LEFT chopstick." << endl;
     sem_post(&cmdWindow);
 
-    sem_post(&chopstickArr[(philNum + 1) % phils]);
     sem_wait(&cmdWindow);
+    sem_post(&chopstickArr[(philNum + 1) % phils]);
     cout << "--------Philosopher #" << philNum << " puts down RIGHT chopstick." << endl;
     cout << "--------Philosopher #" << philNum << " begins to think." << endl;
     sem_post(&cmdWindow);
+    sem_post(&pickUpSticks);
 
     // think for a lil while
     philState = thinking;
@@ -227,7 +226,89 @@ void eat(int philNum, philState &philState){
         sched_yield();
     } 
 
+    // he's a hungry guy
     philState = hungry;
 
 }
 
+void semaphoreCheck(){
+    if(sem_init(&sitting, 0, 1) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_init(&waitToSit, 0, 0) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_init(&pickUpSticks, 0, 1) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_init(&beginEat, 0, 1) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_init(&endEat, 0, 1) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_init(&getUp, 0, 1) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_init(&leaving, 0, 0) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_init(&cmdWindow, 0, 1) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_init(&mealSem, 0, 1) == -1){
+        perror("sem_init");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void garbageCollection(){
+    free(chopstickArr);
+    for (int i=0; i<phils; i++){
+        sem_destroy(&chopstickArr[i]);
+    }
+    if (sem_destroy(&sitting) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_destroy(&waitToSit) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_destroy(&pickUpSticks) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_destroy(&beginEat) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_destroy(&endEat) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_destroy(&getUp) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_destroy(&leaving) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_destroy(&cmdWindow) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+    if (sem_destroy(&mealSem) == -1){
+        perror("sem_destroy");
+        exit(EXIT_FAILURE);
+    }
+}
