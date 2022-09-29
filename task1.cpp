@@ -29,18 +29,14 @@ void semaphoreCheck();
 void garbageCollection();
 
 int main(){
-    printf("\n----------------------------------------\nDining Philosophers (Semapahores)\n");
+    printf("\n------------------------------------------\n");
+    printf(  "   Dining Philosophers (Semapahores)\n\n");
 
     //prompt user and validate input
     getInput(phils, meals);
     cout << "\nTonight's dinner party will serve::\n" << phils << " philosophers ";
     cout << meals << " total meals. \n----------------------------------------\n"; 
 
-    // init chopstick array
-    chopstickArr = (sem_t *)malloc(sizeof(sem_t)*phils);
-    for (int i=0; i< phils; i++){
-        sem_init(&chopstickArr[i], 0, 1);
-    }
 
     // Initialize Semaphores
     semaphoreCheck();
@@ -157,7 +153,6 @@ void * diningTable(void * arg){
         }   
         else{
             sem_post(&pickUpSticks);
-            sched_yield();
         }
     }
 
@@ -232,6 +227,14 @@ void eat(int philNum, philState &philState){
 }
 
 void semaphoreCheck(){
+    // init chopstick array
+    chopstickArr = (sem_t *)malloc(sizeof(sem_t)*phils);
+    for (int i=0; i< phils; i++){
+        if(sem_init(&chopstickArr[i], 0, 1) == -1){
+            perror("sem_init");
+            exit(EXIT_FAILURE);
+        }
+    }
     if(sem_init(&sitting, 0, 1) == -1){
         perror("sem_init");
         exit(EXIT_FAILURE);
