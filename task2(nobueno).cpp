@@ -20,17 +20,7 @@ int mailboxCapacity; // S from task sheet
 int messagesToSend; // M from the task sheet
 int messagesLeftToSend; // keep track of how many messages can still be sent
 int count = 0;
-string randMessages[11] = {"Going from child, to childish, to childlike is only a matter of time.",
-                          "She found his complete dullness interesting.",
-                          "The beauty of the African sunset disguised the danger lurking nearby.",
-                          "The tears of a clown make my lipstick run, but my shower cap is still intact.",
-                          "They ran around the corner to find that they had traveled back in time.",
-                          "Everybody clap yo hands",
-                          "Your mom called",
-                          "No elbows on the table at dinner.",
-                          "Don't call me while I'm sleeping.",
-                          "I've never been to Texas.",
-                          "Catch me if you can I'm the gingerbread man."};
+
 
 struct mailbox{
     int owner;
@@ -217,9 +207,10 @@ void * postOffice(void * arg){
             
             // check to see if more messages can be sent, if not break
             if (messagesLeftToSend > 0){
+                sem_wait(&cmdWindow);
                 cout << "Person " << countVal << " tries to send message to Person ";
                 cout << randPerson << endl;
-                
+                sem_post(&cmdWindow);
                  // check to see if their mailbox is at capacity yet
                 if(mailboxArr[randPerson].numMessages < mailboxCapacity){
                     // call post as per rubric 
@@ -269,7 +260,7 @@ void * postOffice(void * arg){
 }
 
 void garbageCollection(){
-
+    
     free(mailboxArr);
     if (sem_destroy(&cmdWindow) == -1){
         perror("sem_destroy");

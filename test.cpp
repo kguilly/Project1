@@ -2,11 +2,12 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "string"
+#include "time.h"
 
 /*
 Cmd: g++ test.cpp -o test.o ; ./test.o
 */
-
+using namespace std;
 int numPeople = 5;
 int mailboxCapacity = 5;
 
@@ -29,4 +30,38 @@ int main(){
     std::cout << mailboxArr[2].numMessages << std::endl;
 
     free(mailboxArr);
+
+
+    std::cout << "\n\n\n\n\n make an rng that does not include your number \n" << std::endl;
+    int numPeople = 6;
+    int yourNum = 0;
+    srand(time(0));
+    int randnum;
+    if (yourNum ==  numPeople) randnum = rand() % numPeople;
+    else if(yourNum == 0) randnum = (rand() % numPeople) + 1;
+    else{
+        int upperRand = rand() % ((numPeople - yourNum)) + (yourNum + 1);
+        int lowerRand = rand() % yourNum;
+        cout << upperRand << " " << lowerRand << endl;
+        if(rand() % 2 == 0) randnum = upperRand; 
+        else randnum = lowerRand;
+    }
+            cout << randnum ;
+
+
+
+
+
+
+    int y = 5;
+    int * x = &y;
+    *x = 6;
+
+    cout << "\n\n\n\n\n" << *x << " \t" << y << endl;
+
+
+
+
+    return 0;
+
 }
