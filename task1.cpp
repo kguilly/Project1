@@ -45,7 +45,7 @@ int main(){
     //prompt user and validate input
     getInput(phils, meals);
     cout << "\nTonight's dinner party will serve::\n" << phils << " philosophers ";
-    cout << meals << " total meals. \n----------------------------------------\n"; 
+    cout << meals << " total meals. \n------------------------------------------\n"; 
 
 
     // Initialize Semaphores
@@ -188,19 +188,40 @@ void * diningTable(void * arg){
 }
 
 void eat(int philNum, philState &philState){
-    sem_wait(&cmdWindow);
-    cout << MAGENTA << "------Philosopher #" << philNum << " is eating. " << RESET << endl;
-    sem_post(&cmdWindow);
 
-    philState = eating;
-
+    // phil has picked up his chopsticks, but double check that he can still eat
     sem_wait(&mealSem);
-    //phil has claimed a meal, decrement
-    meals--;
+    if(meals <= 0){
+        // he cannot eat
+        sem_post(&mealSem);
+        // say that he can't eat, put down his chopsticks, and leave
+        sem_wait(&cmdWindow);
+        cout << YELLOW << "There are no meals available for philosopher #" << philNum << "." << RESET << endl;
+        sem_post(&cmdWindow);
+
+        sem_wait(&pickUpSticks);
+        sem_wait(&cmdWindow);
+        sem_post(&chopstickArr[philNum]);
+        cout << CYAN << "--------Philosopher #" << philNum << " puts down LEFT chopstick." << RESET << endl;
+        sem_post(&cmdWindow);
+
+        sem_wait(&cmdWindow);
+        sem_post(&chopstickArr[(philNum + 1) % phils]);
+        cout << CYAN << "--------Philosopher #" << philNum << " puts down RIGHT chopstick." << RESET << endl;
+        sem_post(&cmdWindow);
+        sem_post(&pickUpSticks);
+
+        return;
+
+    }
     sem_wait(&cmdWindow);
+    meals--; // phil has claimed a meal
+    sem_post(&mealSem);
+    cout << MAGENTA << "------Philosopher #" << philNum << " is eating. " << RESET << endl;
+    philState = eating;
     cout << "------Meals left: " << meals << endl;
     sem_post(&cmdWindow);
-    sem_post(&mealSem);
+    
 
     // eat for a lil while
     srand(time(0));

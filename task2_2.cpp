@@ -64,6 +64,8 @@ int main(){
         // init each mailbox to have the total capacity that the mailboxes are allowed
         mailboxArr[i] = (string *)malloc(sizeof(string)*mailboxCapacity); 
     }
+
+    // threadd the mail
     pthread_t threadArr[numPeople];
     for (int i=0; i< numPeople; i++){
         pthread_create(&threadArr[i], NULL, postOffice, &count);
