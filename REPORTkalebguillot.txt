@@ -1,0 +1,235 @@
+Kaleb Guillot
+C00405906
+Project 1 Report
+
+
+------------------------------------------------------------------------------
+Task 1:
+    - Record runtimes for 3 different sets of parameters:
+
+                Phils           Meals           Run time (ms)
+    Run 1 :         5               5                0.559448
+    Run 2 :       500              20               36.959213
+    Run 3 :         3            2000              116.364950
+    Run 4 :      2000               3              113.031467
+    Run 5 :        20             500               52.485870
+
+        It seems that the number of meals and number of philosophers
+    both increase the runtime of the program, and both increase the 
+    time by a nearly identical amount. It seems, however, that a higher
+    number of meals causes the program to take a slightly longer time.
+    
+
+    
+    - Make the Phils yield in between attempting to pick up left and
+    right chops.
+
+                   Phils        Meals           Run time (ms)
+    Run 1 :         5               5                0.585322
+    Run 2 :       500              20               42.666606
+    Run 3 :         3            2000              131.163766
+    Run 4 :      2000               3              119.901288
+    Run 5 :        20             500               80.122638
+
+        Making the phils yield in between attemping to pick up their
+    chopsticks only had minimal effect on the runtime of the program.
+    While each run did take slightly longer than the runs for the previous
+    question, the difference was barely noticeable in some cases. When making 
+    these runs multiple times, the run time varied heavily, and in all cases I 
+    was able to have a run with a lower time than that of the first question's
+    run. 
+
+
+
+------------------------------------------------------------------------------
+Task2
+
+        The biggest issue of deadlock that I had to solve was the instance where
+    a person would check their mailbox while a message was trying to be sent to
+    them. This issue was hard to pinpoint because I would only see that the person
+    would enter the post office before the program halted execution. The solution
+    was to create and correctly handle a protection semaphore array for each 
+    mailbox.
+
+
+        Task2 was different from Task1 in the places of the shared resource.
+    In task1, the philosophers could only access the chopsticks on the left and 
+    right of them, while in task2, any person could access any random mailbox.
+
+
+
+
+------------------------------------------------------------------------------
+Task3
+
+        Task3 differed from the first two tasks in that there were two different
+    threading functions that had to manage the same resources. My solution 
+    required me to toss shared variables and resources back and forth between the 
+    two threading functions.
+
+        When the number of readers allowed at one time in the buffer is very
+    large, then readers will tend to finish reading and then go back in and
+    read again from the buffer before other readers have a chance to get in.  
+
+
+
+
+
+------------------------------------------------------------------------------
+Task5 
+
+    1. 
+        Task1: 
+            I implemented Task1 after examining and researching the dining
+            philosophers problem. I first made the philosopher threads and
+            the threading function, as well as the chopstick semaphore array.
+            First challenge to overcome was implementing the barrier for the 
+            phils to wait to sit, which was taken care of by a sem releasing
+            only after the total amount of phils have come into the function.
+            I immediatly knew that I had to avoid deadlock for the phils to 
+            not all try and pick up the same stick, so I made a sem to only 
+            allow a single phil to try to pick up and put down sticks at a
+            time. 
+            
+            If phils had both of their chopsticks available and there were
+            still meals left, then they would pick up their chopsticks and 
+            be sent into the eating funciton. While in the eating function, 
+            they would eat, put the chopsticks down, and then think for some 
+            time before being sent back to the diningTable function.
+
+            Keeping track of the meal value was tricky as phils kept eating 
+            more meals than I told them they could eat. I had to give the
+            meal value its own semaphore and numerous checks before the
+            phils could actually eat the meal. 
+
+            Housekeeping things that I included in this task that I carried 
+            over to the other tasks include the getInput function, semaphoreCheck,
+            garbageCollection, and output coloring. This way, my code was neater 
+            and I had a mental checkbox of the steps that I had to include for
+            each of the remaining tasks.
+
+
+        Task2:
+            I started implementation of task2 by taking a close look at the
+            producer-consumer algorithm. Similar to the previous task, a tricky
+            part was to not allow more letters to be sent than what the user 
+            entered. The solution was a decrementing value, protected by a 
+            semaphore, that would be checked before sending a message, and would
+            be the deciding factor of breaking the loop after a person does not have
+            any messages left to read.
+
+            I needed to keep track of the empty spaces and full spaces in the 
+            mailbox, as well as protect the mailboxes when they were being read
+            from or written to. This is where my semaphore arrays came in. 
+            Each array was of length of the number of people in the simulation. 
+            I initialized each fullspaceSem to 0, each emptySpaceSem to the mailbox capacity,
+            and the protection semaphore to 1. When reading from the mailbox, I would first
+            call wait() on the protectionSem, read the message in the mailbox at the spot
+            indicated by the fullspace, and then decrement the full space semaphore, and
+            increment the empty space semaphore. Writing to a mailbox was a similar process,
+            but opposite. I would compose the message, call the protection sem, place the message
+            at the space indicated by the fullspaceSem, then increment fullspaceSem and 
+            decrement emptySpaceSem. 
+
+            I wanted to take task2 a step further and make the mailboxes a custom object
+            rather than a mere 2-D array. This was my first iteration, however this was more
+            difficult to implement, and would have taken much more time to debug. 
+
+
+        Task3:
+            I started implementation of task3 by looking into the readers-
+            writers algorithm. My starting point was the verbatum implementation
+            of the algorithm in my code. This resulted in all readers to read, 
+            then all writers to write, then exit. My next step was to put the readers
+            into a loop that would terminate when all writers have finished writing. 
+            I decided that this would be determined from a flag that the last writer
+            would throw once it had completed the write. 
+            
+            The biggest challenge to overcome was only allowing the certain number of
+            specified readers in the buffer at once. This took me longer than I care to
+            admit, but I decided on a semaphore that was initialized to the max number
+            of readers allowed in the buffer. Readers get caught in the sem's queue
+            once the max number of readers enter the buffer, and they are released from
+            the queue whenever a writer finishes and gives them a signal. 
+
+            Another large hurdle was that my program would never exit. The procedure of 
+            read, then write, then read would be followed, but after all the writers would
+            write, then the readers would read and stop, but not exit. This was the result
+            of an incorrect implementation of my writersWait semaphore and the if() condition
+            that would give the stop signal to the readers. When the writers go to writersWait's
+            queue, often times they would execute in no specific order. I was initially checking
+            for the writer with the highest value associated to it to give the stop signal, but I
+            added a varaible to keep track of the amount of writes that would take place instead, 
+            then give the stop signal once the amount specified by the user was hit. 
+
+
+
+    2. 
+        Task1: 
+            This task is (obviously) a variation of the dining philosophers problem. The 
+            implementation is a variation of the associated algorithm:
+                sem chopstickArr;
+                int numphils;
+                Philosopers::
+                    wait(chopstickArr[i]);
+                    wait(chopstickArr[i+1%numphils]);
+                    // eating
+                    signal(chopstickArr[i]);
+                    signal(chopstickArr[i+1&numphils]);
+
+            The data structures that I used in my implementaion were a semaphore array of chopsticks,
+            a thread array of philosophers, and an enumeration of the philosopher states. 
+        
+
+        Task2:
+            This task is a variation of the producer-consumer algorithm. The standard algorithm
+            is as follows: 
+                sem mutex = 1;
+                sem fullspaces = 0;
+                sem emptyspaces = N;
+                Producers::
+                    wait(emptyspaces);
+                    wait(mutex);
+                    // add an item to the buffer
+                    signal(mutex);
+                    signal(fullspaces);
+
+                Consumers::
+                    wait(fullsapces);
+                    wait(mutex);
+                    // remove an item from the buffer
+                    signal(mutex);
+                    signal(emptyspaces);
+
+            The data structures that I used in my implementation were a 2D pointer array to 
+            represent mailboxes and three semaphore pointer arrays to represent the full spaces,
+            empty spaces, a sem to protect the mailboxes whenever they are being read from
+            or written to, and an array of threads to represent each person going into the post
+            office. 
+
+
+        Task3:
+            This task is a variation of the readers-writers algoithm. The standard algorithm
+            is as follows:
+                sem area = 1;
+                sem mutex = 1;
+                int readcount = 0;
+
+                writers:: 
+                    wait(area);
+                    // write
+                    signal(area);
+
+                readers::
+                    wait(mutex);
+                    readcount++;
+                    if(readcount==1) wait(area);
+                    signal(mutex);
+                    // read
+                    wait(mutex);
+                    readcount--;
+                    if(readcount==0) signal(area);
+                    signal(mutex);
+
+            The data structures that I used in my implementation were an array for the readers and
+            an array for the writers.

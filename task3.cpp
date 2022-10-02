@@ -149,7 +149,7 @@ void getInput(int &readers, int& writers, int &maxReadersAtOnce){
             cout << "Invalid. Enter a number between 1 and " << readers << "):";
             cin >> maxReadersAtOnce;
         }
-        else if((writers > 10000) | (writers < 1)){
+        else if((maxReadersAtOnce > readers) | (maxReadersAtOnce < 1)){
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cout << "Invalid. Enter a number between 1 and " << readers << "):";
@@ -222,6 +222,11 @@ void * read(void * arg){
         cout << CYAN << "--Reader" << readerNum_ << " is reading." << RESET << endl;
         sem_post(&cmdWindow);
 
+        srand(time(0));
+        int randint = (rand() % 4) + 3; // random num b/w 3 and 6
+        for(int i=0; i<=randint ; i++){
+            sched_yield();
+        }
 
         //release
         sem_wait(&mutex);
@@ -260,6 +265,12 @@ void * write(void * arg){
     sem_wait(&cmdWindow);
     cout << MAGENTA << "---WriterNum" << writerNum_ << " writes to buffer." << RESET << endl;
     sem_post(&cmdWindow);
+
+    srand(time(0));
+    int randint = (rand() % 4) + 3; // random num b/w 3 and 6
+    for(int i=0; i<=randint ; i++){
+        sched_yield();
+    }
 
     sem_post(&area);
 

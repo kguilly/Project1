@@ -1,6 +1,6 @@
 /*
 POST OFFICE SIMULATION
-Cmd Line: g++ -pthread -Wall task2_2.cpp -o task2.o ; ./task2.o
+Cmd Line: g++ -pthread -Wall task2.cpp -o task2.o ; ./task2.o
 */
 #include "iostream"
 #include "stdlib.h"
@@ -242,20 +242,34 @@ void * postOffice(void * arg){
                     // send them a message
                     string messageNum = to_string(messagesToSend - messagesLeftToSend);
                     string sentMessage = "Message " + messageNum + " to person " + to_string(randPerson);
-                    // let them know of success
                     
-                    
-                    sem_wait(&mailboxProtectionSem[randPerson]);
-                    int mailboxSpot;
-                    sem_getvalue(&fullSpacesSem[randPerson],&mailboxSpot);
-                    mailboxArr[randPerson][mailboxSpot] = sentMessage; // put mail in the right spot
-                    sem_post(&fullSpacesSem[randPerson]); // add one to full space
-                    sem_wait(&emptySpacesSem[randPerson]); // subtract one from empty space
-                    sem_post(&mailboxProtectionSem[randPerson]);
-                    
-                    sem_wait(&cmdWindow);
-                    cout << MAGENTA << "------Person " << countVal << " sent msg: " << sentMessage << RESET << endl;
-                    sem_post(&cmdWindow);                    
+                    // check again to make sure that messages can still be sent
+                    if (messagesLeftToSend > 0){
+                        //send the message
+                        sem_wait(&mailboxProtectionSem[randPerson]);
+                        int mailboxSpot;
+                        sem_getvalue(&fullSpacesSem[randPerson],&mailboxSpot);
+                        mailboxArr[randPerson][mailboxSpot] = sentMessage; // put mail in the right spot
+                        sem_post(&fullSpacesSem[randPerson]); // add one to full space
+                        sem_wait(&emptySpacesSem[randPerson]); // subtract one from empty space
+                        sem_post(&mailboxProtectionSem[randPerson]);
+                        
+                        sem_wait(&cmdWindow);
+                        cout << MAGENTA << "------Person " << countVal << " sent msg: " << sentMessage << RESET << endl;
+                        sem_post(&cmdWindow);       
+
+                        // decrement the number of messages left to send
+                        sem_wait(&numMessagesLeftToSendSem);
+                        messagesLeftToSend--;
+                        sem_post(&numMessagesLeftToSendSem);
+
+                    }
+                    else{
+                        sem_wait(&cmdWindow);
+                        cout << "--------Person " << countVal<< " cannot send message, there are no more to send." << endl;
+                        sem_post(&cmdWindow);
+                    }                    
+                                     
                     
                     
 

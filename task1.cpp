@@ -47,6 +47,9 @@ int main(){
     cout << "\nTonight's dinner party will serve::\n" << phils << " philosophers ";
     cout << meals << " total meals. \n------------------------------------------\n"; 
 
+    // for the report
+    struct timespec start;
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     // Initialize Semaphores
     semaphoreCheck();
@@ -61,6 +64,12 @@ int main(){
         pthread_join(philArr[i], NULL);
     }
 
+    // for the report
+    struct timespec end;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double runtime = (end.tv_sec - start.tv_sec) * 1000.0;
+    runtime += (end.tv_nsec - start.tv_nsec) / 1000000.0;
+    printf("Runtime in milliseconds = %f\n", runtime);
 
     //deallocate 
     garbageCollection();
@@ -69,7 +78,7 @@ int main(){
 }
 
 void getInput(int &phils, int &meals){
-    cout << ("Enter the number of philosophers (2-10,000): ");
+    cout << ("Enter the number of philosophers (2-4,622): ");
     cin >> phils;
     while(1){
         if(cin.fail()){
@@ -78,7 +87,7 @@ void getInput(int &phils, int &meals){
             cout << "Invalid goofball, try again: ";
             cin >> phils;
         }
-        else if((phils > 10000) | (phils < 2)){
+        else if((phils > 4622) | (phils < 2)){
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cout << "Enter a number in the range: ";
@@ -145,6 +154,9 @@ void * diningTable(void * arg){
             sem_wait(&chopstickArr[countval]);
             cout << RED << "---Philosopher #" << countval << " picks up his LEFT chopstick. " << RESET << endl;
             sem_post(&cmdWindow);
+
+            // sched_yield(); // report 
+
 
             sem_wait(&cmdWindow);
             sem_wait(&chopstickArr[(countval+1)%phils]);
