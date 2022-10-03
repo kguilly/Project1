@@ -9,6 +9,16 @@
 
 using namespace std;
 /* Command line arg: g++ -pthread -Wall task1.cpp -o task1.o; ./task1.o  */
+// colored output
+#define RESET   "\033[0m"
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define BLUE    "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN    "\033[36m"
+#define WHITE   "\033[37m"
+
 //init vars
 enum philState{
     thinking = 0,
@@ -35,8 +45,11 @@ int main(){
     //prompt user and validate input
     getInput(phils, meals);
     cout << "\nTonight's dinner party will serve::\n" << phils << " philosophers ";
-    cout << meals << " total meals. \n----------------------------------------\n"; 
+    cout << meals << " total meals. \n------------------------------------------\n"; 
 
+    // for the report
+    struct timespec start;
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     // Initialize Semaphores
     semaphoreCheck();
@@ -51,6 +64,12 @@ int main(){
         pthread_join(philArr[i], NULL);
     }
 
+    // for the report
+    struct timespec end;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double runtime = (end.tv_sec - start.tv_sec) * 1000.0;
+    runtime += (end.tv_nsec - start.tv_nsec) / 1000000.0;
+    printf("Runtime in milliseconds = %f\n", runtime);
 
     //deallocate 
     garbageCollection();
@@ -105,89 +124,56 @@ void * diningTable(void * arg){
     sem_wait(&sitting);
     int countval = (*((int *)arg))++;
     sem_wait(&cmdWindow);
-    cout << "-Philosopher #" << countval << " has arrived" << endl;
+    cout << GREEN << "-Philosopher #" << countval << " has arrived" << RESET << endl;
     sem_post(&cmdWindow);
     sem_post(&sitting);
     
     //Wait until all the phils have sat down
     if((countval + 1) == phils){
-        sem_wait(&cmdWindow);
         sem_post(&waitToSit);
         cout << "--All the philosophers have arrived, they sit. " << endl;
-        sem_post(&cmdWindow);
     }
     sem_wait(&waitToSit);
     sem_post(&waitToSit);
 
-    
     // attach a phil state
     philState philState = hungry;
     //init chopstick vars
-    int deadLockPreventCounter =0 ;
     int leftChop;
     int rightChop;
     while(meals > 0){
         //try to pick up left and right chopsticks
         sem_wait(&pickUpSticks);
         sem_getvalue(&chopstickArr[countval], &leftChop);
-        if (leftChop == 1){
-            // pick up the chopstick
-            sem_wait(&chopstickArr[countval]);
-
-            sem_wait(&cmdWindow);
-            cout << "---Philosopher #" << countval << " picks up his left chopstick." << endl;
-            sem_post(&cmdWindow);
-            sem_post(&pickUpSticks);
-        } 
-
-        sem_wait(&pickUpSticks);
-        sem_getvalue(&chopstickArr[(countval+1) % phils], &rightChop);
-        if(rightChop == 1){
-            //pick it up
-            sem_wait(&chopstickArr[(countval+1)%phils]);
-
-            sem_wait(&cmdWindow);
-            cout << "---Philosopher #" << countval << " picks up his right chopstick." << endl;
-            sem_post(&cmdWindow);
-            sem_post(&pickUpSticks);
-        }
-        sem_post(&pickUpSticks);
+        sem_getvalue(&chopstickArr[(countval+1)%phils], &rightChop);
+        
 
         if((leftChop == 1) & (rightChop == 1) & (meals > 0)){
             // pick up the chopsticks, eat, and release the pickup variable
-            //sem_post(&pickUpSticks);
+            sem_wait(&cmdWindow);
+            sem_wait(&chopstickArr[countval]);
+            cout << RED << "---Philosopher #" << countval << " picks up his LEFT chopstick. " << RESET << endl;
+            sem_post(&cmdWindow);
+
+            // sched_yield(); // report 
+
+
+            sem_wait(&cmdWindow);
+            sem_wait(&chopstickArr[(countval+1)%phils]);
+            cout << RED << "---Philosopher #" << countval << " picks up his RIGHT chopstick." << RESET << endl;
+            sem_post(&cmdWindow);
+            sem_post(&pickUpSticks);
             eat(countval, philState);
 
         }
-        else if((leftChop == 1) & (rightChop == 1) & (meals <= 0)){
-            //sem_post(&pickUpSticks);
+        else if((leftChop == 1) & (rightChop == 1) & (meals == 0)){
+            sem_post(&pickUpSticks);
             sem_wait(&cmdWindow);
-            cout << "There are no meals available for philosopher #" << countval<< "." << endl;
+            cout << YELLOW << "There are no meals available for philosopher #" << countval<< "." << RESET << endl;
             sem_post(&cmdWindow);
         }   
-        else if ((meals <= 0)){
-            break;
-            //sem_post(&pickUpSticks);
-        }
-        else if((leftChop == 1) | (rightChop == 1)){
-            // if our counter reaches a certain value, put the chopsticks down and let another
-            // phil get a chance
-            deadLockPreventCounter ++;
-            if (deadLockPreventCounter >= 100){
-                if(leftChop == 1){
-                    sem_wait(&cmdWindow);
-                    sem_post(&chopstickArr[countval]);
-                    cout << "Philosopher #" << countval << " puts down his left chopstick." << endl;
-                    sem_post(&cmdWindow);
-                } 
-                else{
-                    sem_wait(&cmdWindow);
-                    sem_post(&chopstickArr[(countval+1) % phils]);
-                    cout << "Philosopher #" << countval << " puts down his right chopstick." << endl;
-                    sem_post(&cmdWindow);
-                }
-            }
-            
+        else{
+            sem_post(&pickUpSticks);
         }
     }
 
@@ -206,7 +192,7 @@ void * diningTable(void * arg){
     sem_post(&leaving);
 
     sem_wait(&cmdWindow);
-    cout << "---------Philosopher #" << countval << " has gotten up and left. " << endl;
+    cout << BLUE << "---------Philosopher #" << countval << " has gotten up and left. " << RESET << endl;
     sem_post(&cmdWindow);
 
     pthread_exit(0);
@@ -214,19 +200,40 @@ void * diningTable(void * arg){
 }
 
 void eat(int philNum, philState &philState){
-    sem_wait(&cmdWindow);
-    cout << "------Philosopher #" << philNum << " is eating. " << endl;
-    sem_post(&cmdWindow);
 
-    philState = eating;
-
+    // phil has picked up his chopsticks, but double check that he can still eat
     sem_wait(&mealSem);
-    //phil has claimed a meal, decrement
-    meals--;
+    if(meals <= 0){
+        // he cannot eat
+        sem_post(&mealSem);
+        // say that he can't eat, put down his chopsticks, and leave
+        sem_wait(&cmdWindow);
+        cout << YELLOW << "There are no meals available for philosopher #" << philNum << "." << RESET << endl;
+        sem_post(&cmdWindow);
+
+        sem_wait(&pickUpSticks);
+        sem_wait(&cmdWindow);
+        sem_post(&chopstickArr[philNum]);
+        cout << CYAN << "--------Philosopher #" << philNum << " puts down LEFT chopstick." << RESET << endl;
+        sem_post(&cmdWindow);
+
+        sem_wait(&cmdWindow);
+        sem_post(&chopstickArr[(philNum + 1) % phils]);
+        cout << CYAN << "--------Philosopher #" << philNum << " puts down RIGHT chopstick." << RESET << endl;
+        sem_post(&cmdWindow);
+        sem_post(&pickUpSticks);
+
+        return;
+
+    }
     sem_wait(&cmdWindow);
+    meals--; // phil has claimed a meal
+    sem_post(&mealSem);
+    cout << MAGENTA << "------Philosopher #" << philNum << " is eating. " << RESET << endl;
+    philState = eating;
     cout << "------Meals left: " << meals << endl;
     sem_post(&cmdWindow);
-    sem_post(&mealSem);
+    
 
     // eat for a lil while
     srand(time(0));
@@ -236,18 +243,18 @@ void eat(int philNum, philState &philState){
     }
     
     //phil has finished his meal, put down the chopsticks and begin thinking
-    //sem_wait(&pickUpSticks);
+    sem_wait(&pickUpSticks);
     sem_wait(&cmdWindow);
     sem_post(&chopstickArr[philNum]);
-    cout << "--------Philosopher #" << philNum << " puts down LEFT chopstick." << endl;
+    cout << CYAN << "--------Philosopher #" << philNum << " puts down LEFT chopstick." << RESET << endl;
     sem_post(&cmdWindow);
 
     sem_wait(&cmdWindow);
     sem_post(&chopstickArr[(philNum + 1) % phils]);
-    cout << "--------Philosopher #" << philNum << " puts down RIGHT chopstick." << endl;
+    cout << CYAN << "--------Philosopher #" << philNum << " puts down RIGHT chopstick." << RESET << endl;
     cout << "--------Philosopher #" << philNum << " begins to think." << endl;
     sem_post(&cmdWindow);
-    //sem_post(&pickUpSticks);
+    sem_post(&pickUpSticks);
 
     // think for a lil while
     philState = thinking;
@@ -309,11 +316,10 @@ void semaphoreCheck(){
 }
 
 void garbageCollection(){
-    
+    free(chopstickArr);
     for (int i=0; i<phils; i++){
         sem_destroy(&chopstickArr[i]);
     }
-    free(chopstickArr);
     if (sem_destroy(&sitting) == -1){
         perror("sem_destroy");
         exit(EXIT_FAILURE);
