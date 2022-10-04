@@ -34,13 +34,13 @@ int main(int argc, char* argv[]){
     // if correct entry
     if(strcmp(argv[1],"-A") == 0){
         if(strcmp(argv[2], "1") == 0){
-            system("g++ tasks/task1.cpp -o task1; ./task1");
+            system("g++ -pthread tasks/task1.cpp -o task1; ./task1");
         }
         else if(strcmp(argv[2], "2") == 0){
-            system("g++ tasks/task2.cpp -o task2; ./task2");
+            system("g++ -pthread tasks/task2.cpp -o task2; ./task2");
         }
         else if(strcmp(argv[2], "3") == 0){
-            system("g++ tasks/task3.cpp -o task3; ./task3");
+            system("g++ -pthread tasks/task3.cpp -o task3; ./task3");
         }
         else{
             cout << "Error, incorrect arguments. The options are 1, 2, or 3. " << endl;

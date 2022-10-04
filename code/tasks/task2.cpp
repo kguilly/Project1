@@ -348,7 +348,7 @@ void garbageCollection(){
 }
 
 int chooseRandPerson(int personNum){
-    srand(time(0));
+    // srand(time(0));
     int randNum;
     randNum = rand() % numPeople;
     if (personNum == randNum){
