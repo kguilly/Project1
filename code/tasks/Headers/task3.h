@@ -14,9 +14,7 @@ using namespace std;
 class Task3{
     public:
         Task3();
-        int run();
-
-    private:
+        // int run();
         // init vars
         int readers; int writers; int maxReadersAtOnce; // init vars from user
         int readcount; // controls when to wait and signal the area
@@ -40,6 +38,7 @@ class Task3{
         void * read(void * arg);
         void * write(void *arg);
 
+    private:
     protected:
 };
 
