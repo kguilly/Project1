@@ -131,7 +131,7 @@ void Task3::validateSems(){
 
 void Task3::garbageCollection(){
 
-     if(sem_destroy(&cmdWindow)== -1){
+    if(sem_destroy(&cmdWindow)== -1){
         perror("sem_destroy");
         exit(EXIT_FAILURE);
     }
@@ -167,7 +167,7 @@ void Task3::garbageCollection(){
 }
 
 void * Task3::read(void * arg){
-    sem_wait(&argSem);
+    sem_wait(&t3->argSem);
     // start reading 
     int readerNum_ = (*(int *)arg)++;
     sem_post(&argSem);
@@ -265,3 +265,32 @@ void * Task3::write(void * arg){
     pthread_exit(0);
 }
 
+
+void Task3::run(){
+    printf("\n------------------------------------------\n");
+    printf(  "   Readers-Writer Problem(Semapahores)\n\n");
+
+    Task3 t3;
+
+
+    this->getInput(readers, writers, maxReadersAtOnce);
+    this->validateSems();
+
+    pthread_t readerArr[readers];
+    pthread_t writerArr[writers];
+    for(int i=0; i< readers; i++){
+        pthread_create(&readerArr[i], NULL, (&t3.read), &readerNum);
+    }
+    for(int i=0; i< writers; i++){
+        pthread_create(&writerArr[i], NULL, this->write, &writerNum);
+    }
+    for(int i=0; i<readers; i++){
+        pthread_join(readerArr[i], NULL);
+    }
+    for(int i=0; i<writers; i++){
+        pthread_join(writerArr[i], NULL);
+    }
+
+    this->garbageCollection();
+
+}
