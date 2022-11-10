@@ -1018,7 +1018,7 @@ void*Task1::diningTable(void*arg){
 
     pthread_exit(0);
 }
-static void* diningTable_helper(void*context){
+static void* Task1::diningTable_helper(void*context){
     return ((Task1*)context)->diningTable(context);
 }
 
