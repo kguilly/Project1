@@ -1022,6 +1022,9 @@ class Task1{
 
 
 int main(int argc, char* argv[]){
+    // TESTING //
+    Task1 t1;
+    t1.run();
     
     // check if there's too little arguments
     if (argc <= 1){
