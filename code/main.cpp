@@ -19,7 +19,6 @@ using namespace std;
 using namespace std;
 
 int main(int argc, char* argv[]){
-    runT2();    
     // check if there's too little arguments
     if (argc <= 1){
         cout << "You cannot have 0 parameters." << endl;

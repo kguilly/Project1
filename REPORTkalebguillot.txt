@@ -52,9 +52,15 @@ Task2
     mailbox.
 
 
-        Task2 was different from Task1 in the places of the shared resource.
+        Task2 was different from Task1 in the placement of the shared resource.
     In task1, the philosophers could only access the chopsticks on the left and 
     right of them, while in task2, any person could access any random mailbox.
+    Task2 also differed in what each person could do with the mailbox once
+    access was granted. For each person, when accessing another person's mailbox,
+    they were able to leave messages in the mailbox (a.k.a. be a producer).
+    However, when each person accessed their own mailbox, they were only able to
+    decrement the number of letters they had in their mailbox, which was very
+    similar to the functionality of Task 1.
 
 
 
@@ -69,7 +75,8 @@ Task3
 
         When the number of readers allowed at one time in the buffer is very
     large, then readers will tend to finish reading and then go back in and
-    read again from the buffer before other readers have a chance to get in.  
+    read again from the buffer before other readers have a chance to get in.
+    Since writers had a relatively low priority, they
 
 
 
