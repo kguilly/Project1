@@ -6,33 +6,7 @@
 #include "pthread.h"
 #include "limits"
 #include "semaphore.h"
-
-/* Cmd Line: g++ -pthread -Wall task3.cpp -o task3.o ; ./task3.o       
-Readers / Writers alg::
-    sem area = 1
-    sem mutex = 1
-
-    int readcount =0
-
-    writers::
-        wait(area)
-        // write
-        signal(area)
-
-    readers::
-        wait(mutex)
-        readcount++
-        if(readcount==1) wait(area)
-        signal(mutex)
-
-        // read
-
-        wait(mutex)
-        readcount--;
-        if(readcount==0) signal(area)
-        signal(mutex)
-*/
-
+#include <cstring>
 
 using namespace std;
 
@@ -46,33 +20,32 @@ using namespace std;
 #define CYAN    "\033[36m"
 #define WHITE   "\033[37m"
 
-
 // init vars
 int readers; int writers; int maxReadersAtOnce; // init vars from user
-int readcount = 0; // controls when to wait and signal the area
-int readerNum = 0; int writerNum = 0; // identifying info for readers and writers
-int stopSignal = 0; // signal given from writers to let readers know that all reads are done and to stop 
-int totalReads = 0; // reps the total reads in the buffer at once
-int timesWritten = 0; // keep track of the amount of writers that have come through
+int readcount; // controls when to wait and signal the area
+int readerNum; int writerNum; // identifying info for readers and writers
+int stopSignal; // signal given from writers to let readers know that all reads are done and to stop 
+int totalReads; // reps the total reads in the buffer at once
+int timesWritten; // keep track of the amount of writers that have come through
 
 // init sems
 sem_t area; sem_t mutex; sem_t cmdWindow; 
-sem_t argSem; // var that changes the value of the identifing number for readers and writers
+sem_t argSem3; // var that changes the value of the identifing number for readers and writers
 sem_t readersWait; // only allows the specified number of readers in the buffer at once
 sem_t totalReadsSem; // protect the totalReads variable
 sem_t writersWait; // let a writer go only when the maxreadersatonce number is hit
 sem_t timesWrittenSem; // var security
 
-// funct headers
-void getInput(int &readers, int& writers, int &maxReadersAtOnce);
+void getInput(int&, int&, int&);
 void validateSems();
 void garbageCollection();
-void * read(void * arg);
-void * write(void *arg);
+void*read(void*);
+void*write(void*);
 
-int main(){
+int runT3(){
     printf("\n------------------------------------------\n");
     printf(  "   Readers-Writer Problem(Semapahores)\n\n");
+
 
     getInput(readers, writers, maxReadersAtOnce);
     validateSems();
@@ -93,12 +66,11 @@ int main(){
     }
 
     garbageCollection();
-
+    
     return 0;
 }
 
 void getInput(int &readers, int& writers, int &maxReadersAtOnce){
-
     cout << ("Enter the number of readers (1-10,000): ");
     cin >> readers;
     while(1){
@@ -174,7 +146,7 @@ void validateSems(){
         perror("sem_init");
         exit(EXIT_FAILURE);
     }
-    if(sem_init(&argSem, 0, 1) == -1){
+    if(sem_init(&argSem3, 0, 1) == -1){
         perror("sem_init");
         exit(EXIT_FAILURE);
     }
@@ -197,10 +169,10 @@ void validateSems(){
 }
 
 void * read(void * arg){
-    sem_wait(&argSem);
+    sem_wait(&argSem3);
     // start reading 
     int readerNum_ = (*(int *)arg)++;
-    sem_post(&argSem);
+    sem_post(&argSem3);
 
     while(1){
         // check the stop signal
@@ -243,19 +215,14 @@ void * read(void * arg){
 
         // if the number of reads at once is reached, let a writer go
         if (totalReads == maxReadersAtOnce) sem_post(&writersWait);
-
-
     }
-
-    
-    
     pthread_exit(0);
 }
 
-void * write(void * arg){
-    sem_wait(&argSem);
+void * write(void *arg){
+    sem_wait(&argSem3);
     int writerNum_ = (*(int *)arg)++;
-    sem_post(&argSem);
+    sem_post(&argSem3);
 
     // wait to write until maxNumReadersinBuffer is reached
     sem_wait(&writersWait);
@@ -297,10 +264,8 @@ void * write(void * arg){
         // release any other readers that may be stuck in sem queue
         for(int i=0; i<readers; i++) sem_post(&readersWait);
     } 
-    
-    
-
     pthread_exit(0);
+
 }
 
 void garbageCollection(){
@@ -316,7 +281,7 @@ void garbageCollection(){
         perror("sem_destroy");
         exit(EXIT_FAILURE);
     }
-    if(sem_destroy(&argSem) == -1){
+    if(sem_destroy(&argSem3) == -1){
         perror("sem_destroy");
         exit(EXIT_FAILURE);
     }
@@ -336,4 +301,5 @@ void garbageCollection(){
         perror("sem_destroy");
         exit(EXIT_FAILURE);
     }
+
 }

@@ -52,9 +52,15 @@ Task2
     mailbox.
 
 
-        Task2 was different from Task1 in the places of the shared resource.
+        Task2 was different from Task1 in the placement of the shared resource.
     In task1, the philosophers could only access the chopsticks on the left and 
     right of them, while in task2, any person could access any random mailbox.
+    Task2 also differed in what each person could do with the mailbox once
+    access was granted. For each person, when accessing another person's mailbox,
+    they were able to leave messages in the mailbox (a.k.a. be a producer).
+    However, when each person accessed their own mailbox, they were only able to
+    decrement the number of letters they had in their mailbox, which was very
+    similar to the functionality of Task 1.
 
 
 
@@ -68,10 +74,13 @@ Task3
     two threading functions.
 
         When the number of readers allowed at one time in the buffer is very
-    large, then readers will tend to finish reading and then go back in and
-    read again from the buffer before other readers have a chance to get in.  
-
-
+    large and the total number of writers and the total number of readers at a 
+    time are both relatively low, then not all of the readers will get a chance
+    to read inside the buffer. The length of the simulation depends mostly on 
+    the number of readers inside the buffer at a time and the number of writers.
+    However, since writers had a relatively low priority, they do not remain in the buffer
+    for as long of a period of time as their reader counterparts. This is especially
+    true when the number of readers in the buffer at a time is high. 
 
 
 
