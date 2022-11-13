@@ -74,11 +74,13 @@ Task3
     two threading functions.
 
         When the number of readers allowed at one time in the buffer is very
-    large, then readers will tend to finish reading and then go back in and
-    read again from the buffer before other readers have a chance to get in.
-    Since writers had a relatively low priority, they
-
-
+    large and the total number of writers and the total number of readers at a 
+    time are both relatively low, then not all of the readers will get a chance
+    to read inside the buffer. The length of the simulation depends mostly on 
+    the number of readers inside the buffer at a time and the number of writers.
+    However, since writers had a relatively low priority, they do not remain in the buffer
+    for as long of a period of time as their reader counterparts. This is especially
+    true when the number of readers in the buffer at a time is high. 
 
 
 
